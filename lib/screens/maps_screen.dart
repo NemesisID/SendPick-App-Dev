@@ -12,13 +12,12 @@ class MapsScreen extends StatefulWidget {
 
 class _MapsScreenState extends State<MapsScreen> {
   GoogleMapController? _mapController;
-  LatLng _currentPosition = const LatLng(-6.2088, 106.8456); // Default Jakarta
+  LatLng _currentPosition = const LatLng(-6.2088, 106.8456);
   Set<Marker> _markers = {};
   bool _isLoading = true;
   final DraggableScrollableController _scrollController =
       DraggableScrollableController();
 
-  // Daftar lokasi tujuan pengantaran
   final List<Map<String, dynamic>> _deliveryLocations = [
     {
       'name': 'Lokasi Pengantaran 1',
@@ -89,7 +88,6 @@ class _MapsScreenState extends State<MapsScreen> {
   Future<void> _loadMarkers() async {
     Set<Marker> markers = {};
 
-    // Marker untuk lokasi saat ini (Truk - Biru)
     markers.add(
       Marker(
         markerId: const MarkerId('current_location'),
@@ -103,7 +101,6 @@ class _MapsScreenState extends State<MapsScreen> {
       ),
     );
 
-    // Markers untuk lokasi tujuan
     for (int i = 0; i < _deliveryLocations.length; i++) {
       final location = _deliveryLocations[i];
       markers.add(
@@ -174,158 +171,149 @@ class _MapsScreenState extends State<MapsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Google Maps
-          _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.blue),
-                )
-              : GoogleMap(
-                  onMapCreated: (controller) => _mapController = controller,
-                  initialCameraPosition: CameraPosition(
-                    target: _currentPosition,
-                    zoom: 14,
-                  ),
-                  markers: _markers,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  mapToolbarEnabled: false,
-                  compassEnabled: true,
-                  trafficEnabled: true, // Menampilkan traffic
-                  buildingsEnabled: true,
-                  mapType: MapType.normal,
-                  onTap: (position) {
-                    // Minimize bottom sheet saat tap map
-                    if (_scrollController.size > 0.2) {
-                      _scrollController.animateTo(
-                        0.15,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      );
-                    }
-                  },
-                ),
-
-          // Draggable Bottom Sheet
-          DraggableScrollableSheet(
-            controller: _scrollController,
-            initialChildSize: 0.15,
-            minChildSize: 0.15,
-            maxChildSize: 0.7,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Scroll Indicator
-                    GestureDetector(
-                      onTap: () {
-                        if (_scrollController.size < 0.5) {
-                          _scrollController.animateTo(
-                            0.7,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOut,
-                          );
-                        } else {
-                          _scrollController.animateTo(
-                            0.15,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOut,
-                          );
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 12),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Content
-                    Expanded(
-                      child: ListView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Lokasi Pengantaran',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '${_deliveryLocations.length} Lokasi',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // List lokasi pengantaran
-                          ..._deliveryLocations.map((location) {
-                            return _buildDeliveryCard(location);
-                          }).toList(),
-
-                          const SizedBox(height: 80), // Padding bottom
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          // Button kembali ke lokasi saat ini
-          Positioned(
-            bottom: 250,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _recenterToCurrentLocation,
-              backgroundColor: Colors.white,
-              elevation: 4,
-              child: const Icon(Icons.my_location, color: Colors.blue),
+    return Stack(
+      children: [
+        // Google Maps (TANPA Scaffold, karena sudah ada di parent)
+        _isLoading
+            ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF021E7B)),
+            )
+            : GoogleMap(
+              onMapCreated: (controller) => _mapController = controller,
+              initialCameraPosition: CameraPosition(
+                target: _currentPosition,
+                zoom: 14,
+              ),
+              markers: _markers,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              compassEnabled: true,
+              trafficEnabled: true,
+              buildingsEnabled: true,
+              mapType: MapType.normal,
+              onTap: (position) {
+                if (_scrollController.size > 0.2) {
+                  _scrollController.animateTo(
+                    0.15,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              },
             ),
+
+        // Draggable Bottom Sheet
+        DraggableScrollableSheet(
+          controller: _scrollController,
+          initialChildSize: 0.15,
+          minChildSize: 0.15,
+          maxChildSize: 0.7,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (_scrollController.size < 0.5) {
+                        _scrollController.animateTo(
+                          0.7,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      } else {
+                        _scrollController.animateTo(
+                          0.15,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Lokasi Pengantaran',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF021E7B).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${_deliveryLocations.length} Lokasi',
+                                style: const TextStyle(
+                                  color: Color(0xFF021E7B),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        ..._deliveryLocations.map((location) {
+                          return _buildDeliveryCard(location);
+                        }).toList(),
+                        const SizedBox(
+                          height: 100,
+                        ), // Extra padding untuk navbar
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        // Button kembali ke lokasi saat ini
+        Positioned(
+          bottom: 100, // Naik sedikit karena ada navbar
+          right: 16,
+          child: FloatingActionButton(
+            onPressed: _recenterToCurrentLocation,
+            backgroundColor: Colors.white,
+            elevation: 4,
+            child: const Icon(Icons.my_location, color: Color(0xFF021E7B)),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -357,7 +345,6 @@ class _MapsScreenState extends State<MapsScreen> {
             children: [
               Row(
                 children: [
-                  // Icon
                   Container(
                     width: 50,
                     height: 50,
@@ -374,8 +361,6 @@ class _MapsScreenState extends State<MapsScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-
-                  // Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,18 +385,12 @@ class _MapsScreenState extends State<MapsScreen> {
                       ],
                     ),
                   ),
-
-                  // Arrow
                   const Icon(Icons.arrow_forward_ios, size: 16),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // Status & Info Row
               Row(
                 children: [
-                  // Status Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -430,10 +409,7 @@ class _MapsScreenState extends State<MapsScreen> {
                       ),
                     ),
                   ),
-
                   const Spacer(),
-
-                  // Distance & ETA
                   Row(
                     children: [
                       Icon(Icons.route, size: 14, color: Colors.grey[600]),
