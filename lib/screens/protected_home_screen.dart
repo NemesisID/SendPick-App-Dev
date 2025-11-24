@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/navbar.dart';
+import 'home_screen.dart';
 import 'maps_screen.dart';
+import 'history_screen.dart';
+import 'profile_screen.dart';
 
 class ProtectedHomeScreen extends StatefulWidget {
   const ProtectedHomeScreen({super.key});
@@ -14,11 +17,11 @@ class _ProtectedHomeScreenState extends State<ProtectedHomeScreen> {
 
   // Daftar halaman sesuai navbar
   final List<Widget> _pages = [
-    const HomeContent(), // Index 0 - Home
+    const HomeScreen(), // Index 0 - Home
     const MapsScreen(), // Index 1 - Maps
     const ScanPage(), // Index 2 - Scan
-    const HistoryPage(), // Index 3 - History
-    const ProfilePage(), // Index 4 - Profile
+    const HistoryScreen(), // Index 3 - History
+    const ProfileScreen(), // Index 4 - Profile
   ];
 
   void _onNavBarTapped(int index) {
@@ -35,23 +38,6 @@ class _ProtectedHomeScreenState extends State<ProtectedHomeScreen> {
         currentIndex: _currentIndex,
         onTap: _onNavBarTapped,
       ),
-    );
-  }
-}
-
-// ========== HALAMAN HOME ==========
-class HomeContent extends StatelessWidget {
-  const HomeContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        backgroundColor: const Color(0xFF021E7B),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(child: Text('Home Content')),
     );
   }
 }
@@ -82,54 +68,4 @@ class ScanPage extends StatelessWidget {
   }
 }
 
-// ========== HALAMAN HISTORY (Sementara) ==========
-class HistoryPage extends StatelessWidget {
-  const HistoryPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        backgroundColor: const Color(0xFF021E7B),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 100, color: Color(0xFF021E7B)),
-            SizedBox(height: 20),
-            Text('Halaman History', style: TextStyle(fontSize: 18)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ========== HALAMAN PROFILE (Sementara) ==========
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: const Color(0xFF021E7B),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person, size: 100, color: Color(0xFF021E7B)),
-            SizedBox(height: 20),
-            Text('Halaman Profile', style: TextStyle(fontSize: 18)),
-          ],
-        ),
-      ),
-    );
-  }
-}

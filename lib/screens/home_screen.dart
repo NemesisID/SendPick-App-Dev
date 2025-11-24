@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/navbar.dart';
 import '../widgets/pending_order_card.dart';
 import '../main.dart'; // Import main to access authService
 import 'package:google_fonts/google_fonts.dart';
@@ -12,8 +11,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0; // Default: Home
-
   @override
   void initState() {
     super.initState();
@@ -22,22 +19,24 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!authService.hasSelectedVehicle) {
         // If no vehicle is selected, redirect to vehicle selection
-        Navigator.pushReplacementNamed(context, '/vehicle-selection');
+        Navigator.pushReplacementNamed(
+          context,
+          '/vehicle_selection',
+          arguments:
+              'login', // Treat auto-redirect as login flow since user isn't really "in" home yet
+        );
       }
     });
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Di sini Anda bisa tambahkan navigasi ke halaman lain jika perlu
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
+    // If no vehicle is selected, show a loading indicator or empty container
+    // while the redirection happens in initState
+    if (!authService.hasSelectedVehicle) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -48,71 +47,75 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 40,
         ),
         actions: [
-          // Add vehicle info to the app bar if a vehicle is selected
-          if (authService.hasSelectedVehicle)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
+          // Add vehicle info to the app bar
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.local_shipping,
+                    color: Colors.blue.shade600,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      authService.selectedVehicleId ?? 'Unknown',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade600,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.local_shipping,
-                      color: Colors.blue.shade600,
-                      size: 18,
+                    Text(
+                      'Kendaraan', // Could be dynamic if we stored model info
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: Colors.blue.shade400,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'B 1234 XY', // Would be dynamic in real app
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blue.shade600,
+                  ],
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton(
+                  icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
+                  onSelected: (value) {
+                    if (value == 'change') {
+                      // Navigate to vehicle selection screen to change vehicle
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/vehicle_selection',
+                        arguments: 'home',
+                      );
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'change',
+                          child: Row(
+                            children: [
+                              Icon(Icons.local_shipping, size: 18),
+                              SizedBox(width: 8),
+                              Text('Ganti Kendaraan'),
+                            ],
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Avanza', // Would be dynamic in real app
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          color: Colors.blue.shade400,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                  PopupMenuButton(
-                    icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
-                    onSelected: (value) {
-                      if (value == 'change') {
-                        // Navigate to vehicle selection screen to change vehicle
-                        Navigator.pushReplacementNamed(context, '/vehicle-selection');
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'change',
-                        child: Row(
-                          children: [
-                            Icon(Icons.local_shipping, size: 18),
-                            SizedBox(width: 8),
-                            Text('Change Vehicle'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                ),
+              ],
             ),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.black),
             onPressed: () {},
@@ -140,63 +143,41 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            // Show vehicle status - update based on whether a vehicle is selected
-            if (authService.hasSelectedVehicle)
-              Row(
-                children: [
-                  const Icon(Icons.directions_car, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Sedang dalam perjalanan',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to vehicle selection screen to change vehicle
-                      Navigator.pushReplacementNamed(context, '/vehicle-selection');
-                    },
-                    icon: Icon(Icons.local_shipping_outlined, size: 16),
-                    label: const Text('Ganti Kendaraan'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade100,
-                      foregroundColor: Colors.blue.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+            // Show vehicle status - simplified since vehicle is mandatory
+            Row(
+              children: [
+                const Icon(Icons.directions_car, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text(
+                  'Sedang dalam perjalanan',
+                  style: TextStyle(color: Colors.blue),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Navigate to vehicle selection screen to change vehicle
+                    Navigator.pushReplacementNamed(
+                      context,
+                      '/vehicle_selection',
+                      arguments: 'home',
+                    );
+                  },
+                  icon: Icon(Icons.local_shipping_outlined, size: 16),
+                  label: const Text('Ganti Kendaraan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade100,
+                    foregroundColor: Colors.blue.shade700,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Belum pilih kendaraan',
-                    style: TextStyle(color: Colors.orange),
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to vehicle selection screen
-                      Navigator.pushReplacementNamed(context, '/vehicle-selection');
-                    },
-                    icon: Icon(Icons.local_shipping_outlined, size: 16),
-                    label: const Text('Pilih'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade100,
-                      foregroundColor: Colors.blue.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             const Text(
               'Order Aktif',
@@ -350,10 +331,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

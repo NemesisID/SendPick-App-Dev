@@ -30,8 +30,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success) {
-        // Always navigate to home screen, which will handle vehicle selection check
-        Navigator.pushReplacementNamed(context, '/home');
+        // Navigate to vehicle selection screen
+        Navigator.pushReplacementNamed(
+          context,
+          '/vehicle_selection',
+          arguments: 'login',
+        );
       } else {
         _showErrorDialog('Login failed. Please check your credentials.');
       }

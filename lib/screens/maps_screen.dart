@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../utils/map_helper.dart';
 
@@ -11,9 +12,9 @@ class MapsScreen extends StatefulWidget {
 }
 
 class _MapsScreenState extends State<MapsScreen> {
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
   LatLng _currentPosition = const LatLng(-6.2088, 106.8456);
-  Set<Marker> _markers = {};
+  List<Marker> _markers = [];
   bool _isLoading = true;
   final DraggableScrollableController _scrollController =
       DraggableScrollableController();
@@ -74,9 +75,10 @@ class _MapsScreenState extends State<MapsScreen> {
         _isLoading = false;
       });
 
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(_currentPosition, 14),
-      );
+      // Wait for map to be ready before moving
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.move(_currentPosition, 14);
+      });
 
       await _loadMarkers();
     } catch (e) {
@@ -86,37 +88,34 @@ class _MapsScreenState extends State<MapsScreen> {
   }
 
   Future<void> _loadMarkers() async {
-    Set<Marker> markers = {};
+    List<Marker> markers = [];
 
+    // Current Location Marker
     markers.add(
       Marker(
-        markerId: const MarkerId('current_location'),
-        position: _currentPosition,
-        icon: MapHelper.createColoredMarker(Colors.blue),
-        infoWindow: const InfoWindow(
-          title: 'Lokasi Anda',
-          snippet: 'Posisi driver saat ini',
-        ),
-        anchor: const Offset(0.5, 0.5),
+        point: _currentPosition,
+        width: 40,
+        height: 40,
+        child: MapHelper.createColoredMarker(Colors.blue),
       ),
     );
 
+    // Delivery Locations Markers
     for (int i = 0; i < _deliveryLocations.length; i++) {
       final location = _deliveryLocations[i];
       markers.add(
         Marker(
-          markerId: MarkerId('destination_$i'),
-          position: location['position'],
-          icon: MapHelper.createColoredMarker(
-            location['status'] == 'Sedang Dikirim'
-                ? Colors.green
-                : Colors.orange,
+          point: location['position'],
+          width: 40,
+          height: 40,
+          child: GestureDetector(
+            onTap: () => _onMarkerTapped(i),
+            child: MapHelper.createColoredMarker(
+              location['status'] == 'Sedang Dikirim'
+                  ? Colors.green
+                  : Colors.orange,
+            ),
           ),
-          infoWindow: InfoWindow(
-            title: location['name'],
-            snippet: '${location['distance']} • ${location['eta']}',
-          ),
-          onTap: () => _onMarkerTapped(i),
         ),
       );
     }
@@ -158,50 +157,44 @@ class _MapsScreenState extends State<MapsScreen> {
   }
 
   void _moveToLocation(LatLng position) {
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(position, 16),
-    );
+    _mapController.move(position, 16);
   }
 
   void _recenterToCurrentLocation() {
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(_currentPosition, 14),
-    );
+    _mapController.move(_currentPosition, 14);
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Google Maps (TANPA Scaffold, karena sudah ada di parent)
+        // Flutter Map
         _isLoading
             ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF021E7B)),
             )
-            : GoogleMap(
-              onMapCreated: (controller) => _mapController = controller,
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition,
-                zoom: 14,
+            : FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentPosition,
+                initialZoom: 14,
+                onTap: (tapPosition, point) {
+                  if (_scrollController.size > 0.2) {
+                    _scrollController.animateTo(
+                      0.15,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                },
               ),
-              markers: _markers,
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              mapToolbarEnabled: false,
-              compassEnabled: true,
-              trafficEnabled: true,
-              buildingsEnabled: true,
-              mapType: MapType.normal,
-              onTap: (position) {
-                if (_scrollController.size > 0.2) {
-                  _scrollController.animateTo(
-                    0.15,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                }
-              },
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.sendpick_app',
+                ),
+                MarkerLayer(markers: _markers),
+              ],
             ),
 
         // Draggable Bottom Sheet
@@ -445,7 +438,7 @@ class _MapsScreenState extends State<MapsScreen> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    _mapController.dispose();
     _scrollController.dispose();
     super.dispose();
   }

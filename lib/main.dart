@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/vehicle-selection': (context) => const VehicleSelectionScreen(),
+        '/vehicle_selection': (context) => const VehicleSelectionScreen(),
         '/home': (context) => const ProtectedHomeScreen(),
         '/maps': (context) => const MapsScreen(),
       },
