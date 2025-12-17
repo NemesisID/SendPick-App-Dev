@@ -313,21 +313,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             PendingOrderCard(
+              orderId: 'SP-2025-002',
               pesanan: 'Borneo',
-              pickupLocation: 'kertajaya',
-              deliveryLocation: 'Semolowaru',
-              onReject: () {
-                // Handle tolak order
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Order ditolak')),
-                );
-              },
-              onAccept: () {
-                // Handle terima order
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Order diterima')),
-                );
-              },
+              pickupLocation: 'Jl. Kertajaya No. 45, Surabaya',
+              deliveryLocation: 'Jl. Semolowaru No. 12, Surabaya',
+              customerName: 'PT Borneo Logistics',
+              customerPhone: '+62 812 3456 7890',
+              weight: '25 kg',
+              orderType: 'LTL Delivery',
             ),
           ],
         ),

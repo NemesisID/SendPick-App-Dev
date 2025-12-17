@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
             // Animated Logo sliding from left
             SlideTransition(
               position: _slideAnimation,
-              child: Container(
+              child: SizedBox(
                 width: 300,
                 height: 300,
                 child: Padding(

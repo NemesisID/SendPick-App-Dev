@@ -4,6 +4,7 @@ import 'home_screen.dart';
 import 'maps_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'scan_screen.dart';
 
 class ProtectedHomeScreen extends StatefulWidget {
   const ProtectedHomeScreen({super.key});
@@ -15,25 +16,39 @@ class ProtectedHomeScreen extends StatefulWidget {
 class _ProtectedHomeScreenState extends State<ProtectedHomeScreen> {
   int _currentIndex = 0;
 
-  // Daftar halaman sesuai navbar
-  final List<Widget> _pages = [
-    const HomeScreen(), // Index 0 - Home
-    const MapsScreen(), // Index 1 - Maps
-    const ScanPage(), // Index 2 - Scan
-    const HistoryScreen(), // Index 3 - History
-    const ProfileScreen(), // Index 4 - Profile
-  ];
-
   void _onNavBarTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    if (index == 2) {
+      // Scan - open as fullscreen route
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => ScanScreen(
+                onBackTap: () {
+                  Navigator.pop(context); // Return to previous page
+                },
+              ),
+        ),
+      );
+    } else {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeScreen(), // Index 0 - Home
+      const MapsScreen(), // Index 1 - Maps
+      const SizedBox(), // Index 2 - Placeholder (Scan opens as route)
+      const HistoryScreen(), // Index 3 - History
+      const ProfileScreen(), // Index 4 - Profile
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onNavBarTapped,
@@ -41,31 +56,3 @@ class _ProtectedHomeScreenState extends State<ProtectedHomeScreen> {
     );
   }
 }
-
-// ========== HALAMAN SCAN (Sementara) ==========
-class ScanPage extends StatelessWidget {
-  const ScanPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan QR'),
-        backgroundColor: const Color(0xFF021E7B),
-        foregroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.qr_code_scanner, size: 100, color: Color(0xFF021E7B)),
-            SizedBox(height: 20),
-            Text('Halaman Scan QR', style: TextStyle(fontSize: 18)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-

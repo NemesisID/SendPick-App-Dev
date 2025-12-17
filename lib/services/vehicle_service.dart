@@ -4,7 +4,7 @@ import '../models/vehicle.dart';
 
 class VehicleService {
   // Simulate vehicles data - in a real app, this would come from an API or database
-  static List<Vehicle> _vehicles = [
+  static final List<Vehicle> _vehicles = [
     Vehicle(
       id: '1',
       plateNumber: 'B 1234 XY',
