@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart'; // Import main to access authService
+import '../models/driver_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,7 +11,49 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isDriverActive = true;
+  bool _isLoading = false;
+
+  // Get current driver data
+  Driver? get _driver => authService.currentDriver;
+
+  // Get driver status as bool for switch
+  bool get _isDriverActive =>
+      _driver?.status == 'Available' || _driver?.status == 'On Duty';
+
+  // Get initials from name
+  String get _initials {
+    if (_driver == null) return '?';
+    final names = _driver!.driverName.split(' ');
+    if (names.length >= 2) {
+      return '${names[0][0]}${names[1][0]}'.toUpperCase();
+    }
+    return _driver!.driverName.isNotEmpty
+        ? _driver!.driverName[0].toUpperCase()
+        : '?';
+  }
+
+  Future<void> _toggleDriverStatus(bool isActive) async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final newStatus =
+          isActive ? DriverStatus.available : DriverStatus.offDuty;
+      await authService.updateStatus(newStatus);
+      setState(() {}); // Refresh UI
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengubah status: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +85,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundColor: Colors.black,
+                          backgroundColor: const Color(0xFF003D9E),
                           child: Text(
-                            'A',
+                            _initials,
                             style: GoogleFonts.inter(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -53,26 +96,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ahmad',
-                              style: GoogleFonts.inter(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _driver?.driverName ?? 'Driver',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '+62 812 3336 26789',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: Colors.grey[600],
+                              const SizedBox(height: 4),
+                              Text(
+                                _driver?.phone ?? '-',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                _driver?.email ?? '-',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -80,28 +133,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Divider(),
                     const SizedBox(height: 16),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        Icon(Icons.local_shipping_outlined, color: Colors.black87),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '247',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Text(
-                              'Total Order',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
+                        _buildStatItem(
+                          Icons.local_shipping_outlined,
+                          '${_driver?.statistics?.totalOrders ?? 0}',
+                          'Total Order',
+                        ),
+                        _buildStatItem(
+                          Icons.check_circle_outline,
+                          '${_driver?.statistics?.totalDelivered ?? 0}',
+                          'Delivered',
+                        ),
+                        _buildStatItem(
+                          Icons.straighten,
+                          '${_driver?.statistics?.totalDistanceKm.toStringAsFixed(0) ?? '0'} km',
+                          'Jarak',
                         ),
                       ],
                     ),
@@ -132,17 +179,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Status Driver',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                'Status Driver',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _isDriverActive
+                                          ? Colors.green.shade100
+                                          : Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _driver?.status ?? 'Unknown',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                    color:
+                                        _isDriverActive
+                                            ? Colors.green.shade700
+                                            : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Anda sedang aktif dan siap menerima order',
+                            _isDriverActive
+                                ? 'Anda sedang aktif dan siap menerima order'
+                                : 'Anda sedang offline',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -151,15 +229,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                     ),
-                    Switch(
-                      value: _isDriverActive,
-                      onChanged: (value) {
-                        setState(() {
-                          _isDriverActive = value;
-                        });
-                      },
-                      activeColor: const Color(0xFF021E7B),
-                    ),
+                    _isLoading
+                        ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : Switch(
+                          value: _isDriverActive,
+                          onChanged: _toggleDriverStatus,
+                          activeColor: const Color(0xFF021E7B),
+                        ),
                   ],
                 ),
               ),
@@ -266,6 +346,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.black87, size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500]),
+        ),
+      ],
     );
   }
 }

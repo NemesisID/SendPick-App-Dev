@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/pending_order_card.dart';
 import '../main.dart'; // Import main to access authService
 import 'package:google_fonts/google_fonts.dart';
+import '../models/driver_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,30 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Get current driver data
+  Driver? get _driver => authService.currentDriver;
+
+  // Get initials from driver name
+  String get _initials {
+    if (_driver == null) return '??';
+    final names = _driver!.driverName.split(' ');
+    if (names.length >= 2) {
+      return '${names[0][0]}${names[1][0]}'.toUpperCase();
+    }
+    return _driver!.driverName.length >= 2
+        ? _driver!.driverName.substring(0, 2).toUpperCase()
+        : '??';
+  }
+
+  // Get greeting based on time of day
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Selamat Pagi,';
+    if (hour < 15) return 'Selamat Siang,';
+    if (hour < 18) return 'Selamat Sore,';
+    return 'Selamat Malam,';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -124,7 +149,10 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(right: 16.0),
             child: CircleAvatar(
               backgroundColor: const Color(0xFF003D9E),
-              child: const Text('AH', style: TextStyle(color: Colors.white)),
+              child: Text(
+                _initials,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
             ),
           ),
         ],
@@ -134,13 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Selamat Pagi,',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+            Text(
+              _greeting,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            const Text(
-              'Ahmad Marzuki',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              _driver?.driverName ?? 'Driver',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             // Show vehicle status - simplified since vehicle is mandatory

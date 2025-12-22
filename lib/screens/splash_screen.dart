@@ -47,15 +47,29 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeController.forward();
     
     // Navigate after delay - check auth status
-    Timer(const Duration(seconds: 3), () {
-      if (authService.isLoggedIn) {
-        // User is already logged in, go to home screen which will handle vehicle selection check
-        Navigator.of(context).pushReplacementNamed('/home');
-      } else {
-        // User is not logged in, go to login
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-    });
+    _initializeAndNavigate();
+  }
+
+  Future<void> _initializeAndNavigate() async {
+    // Wait for splash animation
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Initialize auth service (load cached data)
+    await authService.initialize();
+
+    // Check if still mounted before navigation
+    if (!mounted) return;
+
+    // Check auth status
+    final isLoggedIn = await authService.isLoggedIn;
+
+    if (isLoggedIn) {
+      // User is already logged in, go to home screen
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      // User is not logged in, go to login
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override

@@ -46,6 +46,7 @@ dependencies:
   path: ^1.9.0
   flutter_polyline_points: ^2.1.0
   connectivity_plus: ^5.0.2
+  flutter_secure_storage: ^9.2.4  # For secure token storage
 
 dev_dependencies:
   flutter_test:

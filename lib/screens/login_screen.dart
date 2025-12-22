@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart'; // Import the main.dart file to access the authService instance
+import '../models/api_response.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,33 +19,52 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_isLoading) return; // Prevent multiple simultaneous logins
 
+    // Basic validation
+    if (_emailController.text.trim().isEmpty) {
+      _showErrorDialog('Silakan masukkan email');
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      _showErrorDialog('Silakan masukkan password');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Attempt to login
-      final success = await authService.login(
+      // Attempt to login - now returns LoginResponse
+      await authService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      if (success) {
-        // Navigate to vehicle selection screen
+      // Success - navigate to vehicle selection
+      if (mounted) {
         Navigator.pushReplacementNamed(
           context,
           '/vehicle_selection',
           arguments: 'login',
         );
+      }
+    } on ApiError catch (e) {
+      // Handle specific API errors
+      if (e.isAuthError) {
+        _showErrorDialog('Email atau password salah');
+      } else if (e.isForbidden) {
+        _showErrorDialog('Akun Anda tidak aktif. Silakan hubungi admin.');
       } else {
-        _showErrorDialog('Login failed. Please check your credentials.');
+        _showErrorDialog(e.message);
       }
     } catch (e) {
-      _showErrorDialog('An error occurred during login. Please try again.');
+      _showErrorDialog('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
