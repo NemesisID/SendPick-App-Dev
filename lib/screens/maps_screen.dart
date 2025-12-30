@@ -7,7 +7,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../utils/map_helper.dart';
 import '../models/order.dart';
+import '../models/api_response.dart';
 import '../services/route_service.dart';
+import '../services/gps_service.dart';
+import '../services/job_service.dart';
+import '../main.dart';
 import 'scan_screen.dart';
 
 class MapsScreen extends StatefulWidget {
@@ -20,9 +24,12 @@ class MapsScreen extends StatefulWidget {
 class _MapsScreenState extends State<MapsScreen> {
   final MapController _mapController = MapController();
   final RouteService _routeService = RouteService();
+  final GpsService _gpsService = GpsService();
+  final JobService _jobService = JobService();
   
   LatLng _currentPosition = const LatLng(-6.2088, 106.8456);
   bool _isLoading = true;
+  String? _errorMessage;
   
   List<Order> _orders = [];
   Order? _navigatingOrder;
@@ -53,7 +60,7 @@ class _MapsScreenState extends State<MapsScreen> {
   Future<void> _initializeData() async {
     await _checkConnectivity();
     await _getCurrentLocation();
-    _loadOrders();
+    await _loadOrders();
   }
 
   Future<void> _checkConnectivity() async {
@@ -76,14 +83,61 @@ class _MapsScreenState extends State<MapsScreen> {
     }
   }
 
-  void _loadOrders() {
-    // Load dummy orders
-    _orders = RouteService.getDummyOrders();
+  /// Load orders from API
+  Future<void> _loadOrders() async {
+    setState(() {
+      _errorMessage = null;
+    });
 
-    // Sort by distance from current location
-    _orders = _routeService.sortByDistance(_orders, _currentPosition);
+    // === DUMMY ORDER FOR TESTING NAVIGATION ===
+    // Lokasi: Tugu Pahlawan Surabaya
+    final dummyOrder = Order(
+      id: 'JO-TEST-001',
+      name: 'Test Navigasi - Tugu Pahlawan Surabaya',
+      address: 'Jl. Pahlawan, Alun-alun Contong, Bubutan, Surabaya 60174',
+      position: const LatLng(-7.2458, 112.7378), // Koordinat Tugu Pahlawan
+      customerName: 'Test Customer',
+      customerPhone: '+62 812 0000 0000',
+      namaBarang: 'Paket Test',
+      beratKg: 1.0,
+      tipeOrderan: 'Express',
+      orderDate: DateTime.now(),
+      status: OrderStatus.inProgress,
+    );
 
+    // Langsung set dummy order tanpa tunggu API
+    _orders = [dummyOrder];
     if (mounted) setState(() {});
+    // === END DUMMY ===
+
+    // Juga coba load dari API (opsional, bisa di-comment jika tidak perlu)
+    try {
+      final response = await _jobService.getJobs();
+
+      // Convert JobOrder to Order for maps
+      final List<Order> orders = [dummyOrder]; // Tetap sertakan dummy
+
+      // Add active orders
+      for (final jobOrder in response.activeOrders) {
+        orders.add(Order.fromJobOrder(jobOrder));
+      }
+
+      // Add pending orders (optional - you might want to show only active)
+      for (final jobOrder in response.pendingOrders) {
+        orders.add(Order.fromJobOrder(jobOrder));
+      }
+
+      // Sort by distance from current location
+      _orders = _routeService.sortByDistance(orders, _currentPosition);
+
+      if (mounted) setState(() {});
+    } on ApiError catch (e) {
+      // Jika API gagal, tetap gunakan dummy order
+      print('API Error (using dummy): ${e.message}');
+    } catch (e) {
+      // Jika error lain, tetap gunakan dummy order
+      print('Error loading orders (using dummy): $e');
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -201,22 +255,39 @@ class _MapsScreenState extends State<MapsScreen> {
           _currentHeading = position.heading;
         });
 
+        // Add location to GPS buffer for API tracking
+        _gpsService.addLocation(
+          position.latitude,
+          position.longitude,
+          orderId: _navigatingOrder?.id,
+          vehicleId: authService.selectedVehicleId,
+        );
+
         // Follow user if enabled
         if (_followUser) {
           _mapController.move(_currentPosition, _mapController.camera.zoom);
         }
       }
     });
+    
+    // Start GPS tracking service (sends data every 30 seconds)
+    _gpsService.startTracking(
+      orderId: _navigatingOrder?.id,
+      vehicleId: authService.selectedVehicleId,
+    );
   }
 
-  void _stopLocationStream() {
+  Future<void> _stopLocationStream() async {
     _positionStream?.cancel();
     _positionStream = null;
+    
+    // Stop GPS tracking and flush remaining buffer
+    await _gpsService.stopTracking();
   }
 
-  void _stopNavigation() {
-    // Stop location stream
-    _stopLocationStream();
+  Future<void> _stopNavigation() async {
+    // Stop location stream and GPS tracking
+    await _stopLocationStream();
 
     setState(() {
       _navigatingOrder = null;
@@ -542,19 +613,18 @@ class _MapsScreenState extends State<MapsScreen> {
           },
         ),
 
-        // Button kembali ke lokasi saat ini
-        if (_navigatingOrder == null)
-          Positioned(
-            bottom: 100,
-            right: 16,
-            child: FloatingActionButton(
-              heroTag: 'recenter',
-              onPressed: _recenterToCurrentLocation,
-              backgroundColor: Colors.white,
-              elevation: 4,
-              child: const Icon(Icons.my_location, color: Color(0xFF021E7B)),
-            ),
+        // Button kembali ke lokasi saat ini (selalu tampil)
+        Positioned(
+          bottom: _navigatingOrder != null ? 120 : 100,
+          right: 16,
+          child: FloatingActionButton(
+            heroTag: 'recenter',
+            onPressed: _recenterToCurrentLocation,
+            backgroundColor: Colors.white,
+            elevation: 4,
+            child: const Icon(Icons.my_location, color: Color(0xFF021E7B)),
           ),
+        ),
 
         // Loading overlay for route calculation
         if (_isLoadingRoute)

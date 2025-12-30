@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import '../models/order.dart';
+import '../models/job_order_model.dart';
+import '../models/api_response.dart';
+import '../services/job_service.dart';
 
 class DeliveryProofFormScreen extends StatefulWidget {
   final String? imagePath;
@@ -42,12 +45,22 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
   late TabController _tabController;
   String? _currentImagePath;
   
+  // Services
+  final JobService _jobService = JobService();
+  
   // Form controllers - only editable field
   final _namaPenerimaController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  // Loading state
+  bool _isSubmitting = false;
   
   // Selected order for LTL
   Order? _selectedOrder;
   List<Order> _pendingOrders = [];
+  
+  // JobOrder from API (if passed)
+  JobOrder? _jobOrder;
 
   @override
   void initState() {
@@ -70,6 +83,16 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
       }
     }
     
+    // Check for JobOrder passed via route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is JobOrder) {
+        setState(() {
+          _jobOrder = args;
+        });
+      }
+    });
+    
     // Listen to tab changes to update UI
     _tabController.addListener(() {
       if (mounted) setState(() {});
@@ -80,15 +103,23 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
   void dispose() {
     _tabController.dispose();
     _namaPenerimaController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  // Get current order data (from Order object or legacy fields)
-  String get _orderId => _selectedOrder?.id ?? widget.orderId;
-  String get _orderDate => _selectedOrder?.formattedDate ?? widget.orderDate;
-  String get _namaBarang => _selectedOrder?.namaBarang ?? widget.namaBarang;
-  String get _customerName => _selectedOrder?.customerName ?? widget.customerName;
-  double get _beratKg => _selectedOrder?.beratKg ?? widget.beratKg;
+  // Get current order data (from JobOrder, Order object, or legacy fields)
+  String get _orderId =>
+      _jobOrder?.jobOrderId ?? _selectedOrder?.id ?? widget.orderId;
+  String get _orderDate =>
+      _jobOrder?.shipDate ?? _selectedOrder?.formattedDate ?? widget.orderDate;
+  String get _namaBarang =>
+      _jobOrder?.goodsDesc ?? _selectedOrder?.namaBarang ?? widget.namaBarang;
+  String get _customerName =>
+      _jobOrder?.customerName ??
+      _selectedOrder?.customerName ??
+      widget.customerName;
+  double get _beratKg =>
+      _jobOrder?.goodsWeight ?? _selectedOrder?.beratKg ?? widget.beratKg;
   String get _tipeOrderan => _selectedOrder?.tipeOrderan ?? widget.tipeOrderan;
 
   Future<void> _retakePhoto() async {
@@ -591,7 +622,7 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
     _tabController.animateTo(1);
   }
 
-  void _onSelesaiPressed() {
+  Future<void> _onSelesaiPressed() async {
     // Validate receiver name
     if (_namaPenerimaController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -615,7 +646,13 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
       return;
     }
 
-    // Notify completion callback if available
+    // If we have a JobOrder, upload POD via API
+    if (_jobOrder != null) {
+      await _uploadPodToApi();
+      return;
+    }
+
+    // Legacy behavior - notify completion callback if available
     if (widget.onOrderCompleted != null) {
       widget.onOrderCompleted!(_orderId);
     }
@@ -630,6 +667,68 @@ class _DeliveryProofFormScreenState extends State<DeliveryProofFormScreen>
     
     // Navigate back to home
     Navigator.popUntil(context, (route) => route.isFirst);
+  }
+  
+  /// Upload Proof of Delivery to API
+  Future<void> _uploadPodToApi() async {
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // First update status to Delivered
+      await _jobService.updateJobStatus(
+        _jobOrder!.jobOrderId,
+        'Delivered',
+        notes: 'Pengiriman selesai',
+      );
+
+      // Then upload POD
+      await _jobService.uploadProofOfDelivery(
+        _jobOrder!.jobOrderId,
+        recipientName: _namaPenerimaController.text.trim(),
+        photo: _currentImagePath != null ? File(_currentImagePath!) : null,
+        notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+      );
+
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Pengiriman ${_jobOrder!.jobOrderId} berhasil dikonfirmasi!',
+          ),
+          backgroundColor: const Color(0xFF4CAF50),
+        ),
+      );
+
+      // Navigate back to home
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } on ApiError catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 }
 

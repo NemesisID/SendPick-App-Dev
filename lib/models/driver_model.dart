@@ -1,3 +1,21 @@
+/// Helper function to safely parse double values from API
+/// Handles both num and String types (API may return "291.10" as string)
+double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
+  if (value == null) return defaultValue;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? defaultValue;
+  return defaultValue;
+}
+
+/// Helper function to safely parse int values from API
+int _parseInt(dynamic value, {int defaultValue = 0}) {
+  if (value == null) return defaultValue;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? defaultValue;
+  return defaultValue;
+}
+
 /// Driver model representing authenticated driver data from API
 class Driver {
   final String driverId;
@@ -30,8 +48,8 @@ class Driver {
       phone: json['phone'] ?? '',
       status: json['status'] ?? 'Off Duty',
       shift: json['shift'] ?? '',
-      lastLat: json['last_lat']?.toDouble(),
-      lastLng: json['last_lng']?.toDouble(),
+      lastLat: json['last_lat'] != null ? _parseDouble(json['last_lat']) : null,
+      lastLng: json['last_lng'] != null ? _parseDouble(json['last_lng']) : null,
       statistics: json['statistics'] != null
           ? DriverStatistics.fromJson(json['statistics'])
           : null,
@@ -101,9 +119,9 @@ class DriverStatistics {
 
   factory DriverStatistics.fromJson(Map<String, dynamic> json) {
     return DriverStatistics(
-      totalOrders: json['total_orders'] ?? 0,
-      totalDelivered: json['total_delivered'] ?? 0,
-      totalDistanceKm: (json['total_distance_km'] ?? 0).toDouble(),
+      totalOrders: _parseInt(json['total_orders']),
+      totalDelivered: _parseInt(json['total_delivered']),
+      totalDistanceKm: _parseDouble(json['total_distance_km']),
     );
   }
 

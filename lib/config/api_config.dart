@@ -33,6 +33,9 @@ class ApiConfig {
   static String updateJobStatusEndpoint(String jobId) => '/jobs/$jobId/status';
   static String uploadPodEndpoint(String jobId) => '/jobs/$jobId/pod';
   
+  /// FCM Token (Push Notification)
+  static const String fcmTokenEndpoint = '/fcm-token';
+  
   /// QR & GPS
   static const String scanQrEndpoint = '/scan-qr';
   static const String gpsBulkEndpoint = '/gps/bulk';
@@ -40,4 +43,8 @@ class ApiConfig {
   /// History
   static const String historyEndpoint = '/history';
   static const String historyStatsEndpoint = '/history/stats';
+  
+  /// Vehicles
+  static String vehicleCheckEndpoint(String vehicleId) =>
+      '/vehicles/$vehicleId/check';
 }

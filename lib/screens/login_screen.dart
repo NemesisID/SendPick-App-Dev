@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart'; // Import the main.dart file to access the authService instance
 import '../models/api_response.dart';
+import '../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,6 +40,11 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+
+      // Kirim FCM Token ke server setelah login berhasil
+      final notifService = NotificationService();
+      final fcmToken = await notifService.getToken();
+      await notifService.sendTokenToServer(fcmToken);
 
       // Success - navigate to vehicle selection
       if (mounted) {

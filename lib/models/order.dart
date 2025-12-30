@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import 'job_order_model.dart';
 
 enum OrderStatus {
   pending,
@@ -39,6 +40,38 @@ class Order {
     this.etaMinutes,
     this.isNavigating = false,
   });
+
+  /// Create Order from JobOrder (API model)
+  factory Order.fromJobOrder(JobOrder jobOrder) {
+    // Map JobOrder status to OrderStatus
+    OrderStatus mapStatus(String status) {
+      switch (status) {
+        case 'Processing':
+        case 'In Transit':
+        case 'Pickup Complete':
+        case 'At Destination':
+          return OrderStatus.inProgress;
+        case 'Delivered':
+          return OrderStatus.completed;
+        default:
+          return OrderStatus.pending;
+      }
+    }
+
+    return Order(
+      id: jobOrder.jobOrderId,
+      name: 'Pengantaran ke ${jobOrder.customerName}',
+      address: jobOrder.deliveryAddress,
+      position: LatLng(jobOrder.deliveryLat, jobOrder.deliveryLng),
+      customerName: jobOrder.customerName,
+      customerPhone: jobOrder.customerPhone ?? '',
+      namaBarang: jobOrder.goodsDesc,
+      beratKg: jobOrder.goodsWeight,
+      tipeOrderan: jobOrder.orderType,
+      orderDate: DateTime.tryParse(jobOrder.shipDate) ?? DateTime.now(),
+      status: mapStatus(jobOrder.status),
+    );
+  }
 
   String get formattedDistance {
     if (distanceKm == null) return '-';

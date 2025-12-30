@@ -1,4 +1,4 @@
-package com.example.sendpick_app
+package com.sendpick.app
 
 import io.flutter.embedding.android.FlutterActivity
 
